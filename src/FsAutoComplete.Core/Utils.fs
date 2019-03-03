@@ -30,7 +30,7 @@ let isAScript fileName =
 /// Determines if the current system is an Unix system.
 /// See http://www.mono-project.com/docs/faq/technical/#how-to-detect-the-execution-platform
 let isUnix =
-#if NETSTANDARD1_6
+#if NETSTANDARD2_0
     System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
         System.Runtime.InteropServices.OSPlatform.Linux) ||
     System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
@@ -41,7 +41,7 @@ let isUnix =
 
 /// Determines if the current system is a MacOs system
 let isMacOS =
-#if NETSTANDARD1_6
+#if NETSTANDARD2_0
     System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
         System.Runtime.InteropServices.OSPlatform.OSX)
 #else
@@ -52,7 +52,7 @@ let isMacOS =
 
 /// Determines if the current system is a Linux system
 let isLinux =
-#if NETSTANDARD1_6
+#if NETSTANDARD2_0
     System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
         System.Runtime.InteropServices.OSPlatform.Linux)
 #else
@@ -61,20 +61,13 @@ let isLinux =
 
 /// Determines if the current system is a Windows system
 let isWindows =
-#if NETSTANDARD1_6
+#if NETSTANDARD2_0
     System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
         System.Runtime.InteropServices.OSPlatform.Windows)
 #else
     match System.Environment.OSVersion.Platform with
     | PlatformID.Win32NT | PlatformID.Win32S | PlatformID.Win32Windows | PlatformID.WinCE -> true
     | _ -> false
-#endif
-
-let runningOnNetCore =
-#if NETSTANDARD1_6
-    true
-#else
-    false
 #endif
 
 let runningOnMono =
