@@ -115,6 +115,10 @@ let bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOpti
         match x with
         | :? ExtraProjectInfoData as extraInfo ->
             Ok (opts, extraInfo, projectFiles, logMap)
+        | :? DPW_ProjectOptions as poDPW ->
+            let extraInfo = mapExtraOptions poDPW.ExtraProjectInfo
+            let fsacOpts = { opts with ExtraProjectInfo = Some (box(extraInfo)) }
+            Ok (fsacOpts, extraInfo, projectFiles, logMap)
         | :? DPW_ExtraProjectInfoData as extraInfoDPW ->
             let extraInfo = mapExtraOptions extraInfoDPW
             let fsacOpts = { opts with ExtraProjectInfo = Some (box(extraInfo)) }
