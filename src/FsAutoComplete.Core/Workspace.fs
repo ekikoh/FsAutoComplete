@@ -25,12 +25,11 @@ let getProjectOptions notifyState (loader: Dotnet.ProjInfo.Workspace.Loader, fcs
         match projectFileName with
         | NetCoreProjectJson ->
             ProjectCrackerProjectJson.load projectFileName
+        | Net45
         | NetCoreSdk ->
             loadProj projectFileName
         | FSharpNetSdk ->
             Error (GenericError(projectFileName, (sprintf "Project file '%s' using FSharp.NET.Sdk not supported" projectFileName)))
-        | Net45 ->
-            loadProj projectFileName
         | Unsupported ->
             Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
 
