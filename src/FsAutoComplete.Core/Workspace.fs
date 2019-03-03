@@ -107,7 +107,7 @@ let private mapExtraOptions (dpwExtraProjectInfo: DPW_ExtraProjectInfoData) : Ex
 
     extraInfo
 
-let bindExtraOptions (opts: Microsoft.FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
+let bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
     match opts.ExtraProjectInfo with
     | None ->
         Error (GenericError(opts.ProjectFileName, "expected ExtraProjectInfo after project parsing, was None"))
