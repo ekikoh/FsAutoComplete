@@ -3,17 +3,8 @@ module FsAutoComplete.Workspace
 open ProjectRecognizer
 open System.IO
 
-let private bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
-    match opts.ExtraProjectInfo with
-    | None ->
-        Error (GenericError(opts.ProjectFileName, "expected ExtraProjectInfo after project parsing, was None"))
-    | Some x ->
-        match x with
-        | :? ExtraProjectInfoData as extraInfo ->
-            Ok (opts, extraInfo, projectFiles, logMap)
-        | x ->
-            Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
-
+#if NO_PROJECTCRACKER
+#else
 let private deduplicateReferences (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
     let projs =
         opts.ReferencedProjects |> Array.map fst
@@ -38,7 +29,7 @@ let private removeDeprecatedArgs (opts: FSharp.Compiler.SourceCodeServices.FShar
     let oos = opts.OtherOptions |> Array.filter (fun n -> n <> "--times" && n <> "--no-jit-optimize")
     let opts = {opts with OtherOptions = oos}
     opts, projectFiles, logMap
-
+#endif
 
 let getProjectOptions notifyState (cache: ProjectCrackerDotnetSdk.ParsedProjectCache) verbose (projectFileName: SourceFilePath) =
     if not (File.Exists projectFileName) then
@@ -55,13 +46,24 @@ let getProjectOptions notifyState (cache: ProjectCrackerDotnetSdk.ParsedProjectC
         | Net45
         | Unsupported ->
             ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
+            |> Result.map deduplicateReferences
+            |> Result.map removeDeprecatedArgs
 #endif
+
+let private bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
+    match opts.ExtraProjectInfo with
+    | None ->
+        Error (GenericError(opts.ProjectFileName, "expected ExtraProjectInfo after project parsing, was None"))
+    | Some x ->
+        match x with
+        | :? ExtraProjectInfoData as extraInfo ->
+            Ok (opts, extraInfo, projectFiles, logMap)
+        | x ->
+            Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
 
 let private parseProject' onLoaded projsCache verbose projectFileName =
     projectFileName
     |> getProjectOptions onLoaded projsCache verbose
-    |> Result.map deduplicateReferences
-    |> Result.map removeDeprecatedArgs
     |> Result.bind bindExtraOptions
 
 let parseProject verbose projectFileName =
