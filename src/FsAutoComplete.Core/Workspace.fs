@@ -52,8 +52,9 @@ let getProjectOptions notifyState (cache: ProjectCrackerDotnetSdk.ParsedProjectC
         | Net45 -> ProjectCrackerDotnetSdk.loadVerboseSdk notifyState cache projectFileName
         | Unsupported -> Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
 #else
-        | Net45 -> ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
-        | Unsupported -> ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
+        | Net45
+        | Unsupported ->
+            ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
 #endif
 
 let private parseProject' onLoaded projsCache verbose projectFileName =
