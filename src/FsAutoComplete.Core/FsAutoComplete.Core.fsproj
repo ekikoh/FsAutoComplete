@@ -30,7 +30,6 @@
     <Compile Include="Parser.fs" />
     <Compile Include="ProjectCrackerTypes.fs" />
     <Compile Include="FscArguments.fs" />
-    <Compile Include="ProjectCrackerProjectJson.fs" />
     <Compile Include="KeywordList.fs" />
     <Compile Include="UnusedDeclarationsAnalyzer.fs" />
     <Compile Include="SimplifyNameAnalyzer.fs" />

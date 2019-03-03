@@ -23,11 +23,11 @@ let private getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBind
                 Error (GenericError(projectFileName, (sprintf "Project file '%s' parsing failed" projectFileName)))
 
         match projectFileName with
-        | NetCoreProjectJson ->
-            ProjectCrackerProjectJson.load projectFileName
         | Net45
         | NetCoreSdk ->
             loadProj projectFileName
+        | NetCoreProjectJson ->
+            Error (GenericError(projectFileName, (sprintf "Project file '%s' format project.json not supported" projectFileName)))
         | FSharpNetSdk ->
             Error (GenericError(projectFileName, (sprintf "Project file '%s' using FSharp.NET.Sdk not supported" projectFileName)))
         | Unsupported ->
