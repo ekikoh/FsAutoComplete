@@ -29,59 +29,14 @@ let private getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBind
         | Unsupported ->
             Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
 
-let private mapExtraOptions (dpwExtraProjectInfo: DPW_ExtraProjectInfoData) : ExtraProjectInfoData =
-    let mapProjectSdkType (x: DPW_ProjectSdkType) : ProjectSdkType =
-        match x with
-        | DPW_ProjectSdkType.Verbose v ->
-            ProjectSdkType.Verbose
-                { ProjectSdkTypeVerbose.TargetPath = v.TargetPath }
-        | DPW_ProjectSdkType.DotnetSdk v ->
-            ProjectSdkType.DotnetSdk
-                { ProjectSdkTypeDotnetSdk.IsTestProject = v.IsTestProject
-                  Configuration = v.Configuration
-                  IsPackable = v.IsPackable
-                  TargetFramework = v.TargetFramework
-                  TargetFrameworkIdentifier = v.TargetFrameworkIdentifier
-                  TargetFrameworkVersion = v.TargetFrameworkVersion
-                  MSBuildAllProjects = v.MSBuildAllProjects
-                  MSBuildToolsVersion = v.MSBuildToolsVersion
-                  ProjectAssetsFile = v.ProjectAssetsFile
-                  RestoreSuccess = v.RestoreSuccess
-                  Configurations = v.Configurations
-                  TargetFrameworks = v.TargetFrameworks
-                  TargetPath = v.TargetPath
-                  RunArguments = v.RunArguments
-                  RunCommand = v.RunCommand
-                  IsPublishable = v.IsPublishable }
-
-    let mapProjectOutputType (x: DPW_ProjectOutputType) : ProjectOutputType =
-        match x with
-        | DPW_ProjectOutputType.Library -> ProjectOutputType.Library
-        | DPW_ProjectOutputType.Exe -> ProjectOutputType.Exe
-        | DPW_ProjectOutputType.Custom o -> ProjectOutputType.Custom o
-
-    let extraInfo =
-        { ExtraProjectInfoData.ProjectOutputType = mapProjectOutputType dpwExtraProjectInfo.ProjectOutputType
-          ProjectSdkType = mapProjectSdkType dpwExtraProjectInfo.ProjectSdkType }
-
-    extraInfo
-
 let bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
     match opts.ExtraProjectInfo with
     | None ->
         Error (GenericError(opts.ProjectFileName, "expected ExtraProjectInfo after project parsing, was None"))
     | Some x ->
         match x with
-        | :? ExtraProjectInfoData as extraInfo ->
-            Ok (opts, extraInfo, projectFiles, logMap)
         | :? DPW_ProjectOptions as poDPW ->
-            let extraInfo = mapExtraOptions poDPW.ExtraProjectInfo
-            let fsacOpts = { opts with ExtraProjectInfo = Some (box(extraInfo)) }
-            Ok (fsacOpts, extraInfo, projectFiles, logMap)
-        | :? DPW_ExtraProjectInfoData as extraInfoDPW ->
-            let extraInfo = mapExtraOptions extraInfoDPW
-            let fsacOpts = { opts with ExtraProjectInfo = Some (box(extraInfo)) }
-            Ok (fsacOpts, extraInfo, projectFiles, logMap)
+            Ok (opts, poDPW, projectFiles, logMap)
         | x ->
             Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
 
@@ -104,8 +59,8 @@ let loadInBackground onLoaded (loader, fcsBinder) (projects: Project list) = asy
             project.FileName
             |> parseProject' (loader, fcsBinder)
             |> function
-               | Ok (opts, extraInfo, projectFiles, logMap) ->
-                   onLoaded (WorkspaceProjectState.Loaded (opts, extraInfo, projectFiles, logMap))
+               | Ok (opts, optsDPW, projectFiles, logMap) ->
+                   onLoaded (WorkspaceProjectState.Loaded (opts, optsDPW.ExtraProjectInfo, projectFiles, logMap))
                | Error error ->
                    onLoaded (WorkspaceProjectState.Failed (project.FileName, error))
 

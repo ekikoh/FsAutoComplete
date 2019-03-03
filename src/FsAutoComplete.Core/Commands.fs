@@ -311,12 +311,12 @@ type Commands (serialize : Serializer) =
                 [ Response.errors serialize (errors, file)]
     }
 
-    member private __.ToProjectCache (opts, extraInfo, projectFiles, logMap) =
+    member private __.ToProjectCache (opts, extraInfo: Dotnet.ProjInfo.Workspace.ExtraProjectInfoData, projectFiles, logMap) =
         let outFileOpt =
             match extraInfo.ProjectSdkType with
-            | ProjectSdkType.Verbose v ->
+            | Dotnet.ProjInfo.Workspace.ProjectSdkType.Verbose v ->
                 Some (v.TargetPath)
-            | ProjectSdkType.DotnetSdk v ->
+            | Dotnet.ProjInfo.Workspace.ProjectSdkType.DotnetSdk v ->
                 Some (v.TargetPath)
         let references = FscArguments.references (opts.OtherOptions |> List.ofArray)
         let projectFiles = projectFiles |> List.map (Path.GetFullPath >> Utils.normalizePath)
@@ -351,7 +351,11 @@ type Commands (serialize : Serializer) =
             | Some response ->
                 Result.Ok (projectFileName, response)
             | None ->
-                match projectFileName |> Workspace.parseProject workspaceBinder |> Result.map (x.ToProjectCache) with
+                let projectCached =
+                    projectFileName
+                    |> Workspace.parseProject workspaceBinder
+                    |> Result.map (fun (opts, optsDPW, projectFiles, logMap) -> x.ToProjectCache(opts, optsDPW.ExtraProjectInfo, projectFiles, logMap) )
+                match projectCached with
                 | Result.Ok (projectFileName, response) ->
                     project.Response <- Some response
                     Result.Ok (projectFileName, response)
@@ -809,7 +813,7 @@ type Commands (serialize : Serializer) =
                 | Some fcsOpts ->
                     match Workspace.bindExtraOptions (fcsOpts, projectFiles, logMap) with
                     | Ok (fsacOpts, extraInfo, projectFiles, logMap) ->
-                        Some (WorkspaceProjectState.Loaded (fsacOpts, extraInfo, projectFiles, logMap))
+                        Some (WorkspaceProjectState.Loaded (fsacOpts, extraInfo.ExtraProjectInfo, projectFiles, logMap))
                     | _ ->
                         None //TODO not ignore the error
                 | None ->
