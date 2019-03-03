@@ -316,8 +316,6 @@ type Commands (serialize : Serializer) =
             match extraInfo.ProjectSdkType with
             | ProjectSdkType.Verbose v ->
                 Some (v.TargetPath)
-            | ProjectSdkType.ProjectJson ->
-                FscArguments.outputFile (Path.GetDirectoryName(opts.ProjectFileName)) (opts.OtherOptions |> List.ofArray)
             | ProjectSdkType.DotnetSdk v ->
                 Some (v.TargetPath)
         let references = FscArguments.references (opts.OtherOptions |> List.ofArray)

@@ -440,8 +440,6 @@ module CommandResponse =
       match extra.ProjectSdkType with
       | ProjectSdkType.Verbose _ ->
         ProjectResponseInfo.Verbose
-      | ProjectSdkType.ProjectJson ->
-        ProjectResponseInfo.ProjectJson
       | ProjectSdkType.DotnetSdk info ->
         ProjectResponseInfo.DotnetSdk {
           IsTestProject = info.IsTestProject

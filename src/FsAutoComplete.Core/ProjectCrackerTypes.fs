@@ -6,7 +6,6 @@ open System.IO
 [<RequireQualifiedAccess>]
 type ProjectSdkType =
     | Verbose of ProjectSdkTypeVerbose
-    | ProjectJson
     | DotnetSdk of ProjectSdkTypeDotnetSdk
 and ProjectSdkTypeVerbose =
     {
