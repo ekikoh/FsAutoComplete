@@ -37,7 +37,6 @@ let getProjectOptions notifyState (loader: Dotnet.ProjInfo.Workspace.Loader, fcs
     else
 
         let loadProj projectPath =
-            // TODO notifyState
             loader.LoadProjects [projectPath]
 
             match fcsBinder.GetProjectOptions (projectPath) with
