@@ -334,7 +334,7 @@ type Commands (serialize : Serializer) =
 
         (opts.ProjectFileName, cached)
 
-    member x.Project projectFileName verbose onChange = async {
+    member x.Project projectFileName _verbose onChange = async {
         let projectFileName = Path.GetFullPath projectFileName
         //printfn "project path: %s" projectFileName
         let project =
@@ -353,7 +353,7 @@ type Commands (serialize : Serializer) =
             | Some response ->
                 Result.Ok (projectFileName, response)
             | None ->
-                match projectFileName |> Workspace.parseProject workspaceBinder verbose |> Result.map (x.ToProjectCache) with
+                match projectFileName |> Workspace.parseProject workspaceBinder |> Result.map (x.ToProjectCache) with
                 | Result.Ok (projectFileName, response) ->
                     project.Response <- Some response
                     Result.Ok (projectFileName, response)
@@ -829,7 +829,7 @@ type Commands (serialize : Serializer) =
         loader.Notifications.Add(fun (_, arg) ->
             arg |> bindNewOnloaded |> Option.iter onLoaded )
 
-        do! Workspace.loadInBackground onLoaded (loader, fcsBinder) false (projects |> List.map snd)
+        do! Workspace.loadInBackground onLoaded (loader, fcsBinder) (projects |> List.map snd)
 
         Response.workspaceLoad serialize true
         |> NotificationEvent.Workspace

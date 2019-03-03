@@ -8,7 +8,7 @@ type DPW_ProjectSdkType = Dotnet.ProjInfo.Workspace.ProjectSdkType
 type DPW_ProjectOutputType = Dotnet.ProjInfo.Workspace.ProjectOutputType
 type DPW_ExtraProjectInfoData = Dotnet.ProjInfo.Workspace.ExtraProjectInfoData
 
-let getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBinder: Dotnet.ProjInfo.Workspace.FCS.FCSBinder) verbose (projectFileName: SourceFilePath) =
+let private getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBinder: Dotnet.ProjInfo.Workspace.FCS.FCSBinder) (projectFileName: SourceFilePath) =
     if not (File.Exists projectFileName) then
         Error (GenericError(projectFileName, sprintf "File '%s' does not exist" projectFileName))
     else
@@ -89,16 +89,16 @@ let bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOpti
         | x ->
             Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
 
-let private parseProject' (loader, fcsBinder) verbose projectFileName =
+let private parseProject' (loader, fcsBinder) projectFileName =
     projectFileName
-    |> getProjectOptions (loader, fcsBinder) verbose
+    |> getProjectOptions (loader, fcsBinder)
     |> Result.bind bindExtraOptions
 
-let parseProject (loader, fcsBinder) verbose projectFileName =
+let parseProject (loader, fcsBinder) projectFileName =
     projectFileName
-    |> parseProject' (loader, fcsBinder) verbose
+    |> parseProject' (loader, fcsBinder)
 
-let loadInBackground onLoaded (loader, fcsBinder) verbose (projects: Project list) = async {
+let loadInBackground onLoaded (loader, fcsBinder) (projects: Project list) = async {
 
     for project in projects do
         match project.Response with
@@ -106,7 +106,7 @@ let loadInBackground onLoaded (loader, fcsBinder) verbose (projects: Project lis
             onLoaded (WorkspaceProjectState.Loaded (res.Options, res.ExtraInfo, res.Files, res.Log))
         | None ->
             project.FileName
-            |> parseProject' (loader, fcsBinder) verbose
+            |> parseProject' (loader, fcsBinder)
             |> function
                | Ok (opts, extraInfo, projectFiles, logMap) ->
                    onLoaded (WorkspaceProjectState.Loaded (opts, extraInfo, projectFiles, logMap))
