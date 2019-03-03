@@ -1,19 +1,5 @@
 namespace FsAutoComplete
 
-module DotnetProjInfoInspectHelpers =
-
-  let msbuildPropBool (s: string) =
-    match s.Trim() with
-    | "" -> None
-    | Dotnet.ProjInfo.Inspect.MSBuild.ConditionEquals "True" -> Some true
-    | _ -> Some false
-
-  let msbuildPropStringList (s: string) =
-    match s.Trim() with
-    | "" -> []
-    | Dotnet.ProjInfo.Inspect.MSBuild.StringList list  -> list
-    | _ -> []
-
 module NETFrameworkInfoProvider =
 
   open System

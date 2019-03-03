@@ -17,6 +17,20 @@ and NoCrossTargetingData = { FscArgs: string list; P2PRefs: MSBuildPrj.ResolvedP
 module MSBuildKnownProperties =
     let TargetFramework = "TargetFramework"
 
+module DotnetProjInfoInspectHelpers =
+
+  let msbuildPropBool (s: string) =
+    match s.Trim() with
+    | "" -> None
+    | Dotnet.ProjInfo.Inspect.MSBuild.ConditionEquals "True" -> Some true
+    | _ -> Some false
+
+  let msbuildPropStringList (s: string) =
+    match s.Trim() with
+    | "" -> []
+    | Dotnet.ProjInfo.Inspect.MSBuild.StringList list  -> list
+    | _ -> []
+
 module ProjectCrackerDotnetSdk =
 
   open DotnetProjInfoInspectHelpers
