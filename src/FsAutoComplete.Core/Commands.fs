@@ -811,10 +811,10 @@ type Commands (serialize : Serializer) =
             | Dotnet.ProjInfo.Workspace.WorkspaceProjectState.Loaded (opts, projectFiles, logMap) ->
                 match fcsBinder.GetProjectOptions(opts.ProjectFileName) with
                 | Some fcsOpts ->
-                    match Workspace.bindExtraOptions (fcsOpts, projectFiles, logMap) with
-                    | Ok (fsacOpts, extraInfo, projectFiles, logMap) ->
-                        Some (WorkspaceProjectState.Loaded (fsacOpts, extraInfo.ExtraProjectInfo, projectFiles, logMap))
-                    | _ ->
+                    match Workspace.extractOptionsDPW fcsOpts with
+                    | Ok optsDPW ->
+                        Some (WorkspaceProjectState.Loaded (fcsOpts, optsDPW.ExtraProjectInfo, projectFiles, logMap))
+                    | Error _ ->
                         None //TODO not ignore the error
                 | None ->
                     //TODO notify C# project too

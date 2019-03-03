@@ -29,21 +29,24 @@ let private getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBind
         | Unsupported ->
             Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
 
-let bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
+let extractOptionsDPW (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions) =
     match opts.ExtraProjectInfo with
     | None ->
         Error (GenericError(opts.ProjectFileName, "expected ExtraProjectInfo after project parsing, was None"))
     | Some x ->
         match x with
         | :? DPW_ProjectOptions as poDPW ->
-            Ok (opts, poDPW, projectFiles, logMap)
+            Ok poDPW
         | x ->
             Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
 
 let private parseProject' (loader, fcsBinder) projectFileName =
     projectFileName
     |> getProjectOptions (loader, fcsBinder)
-    |> Result.bind bindExtraOptions
+    |> Result.bind (fun (fcsOpts, projectFiles, logMap) ->
+        match extractOptionsDPW fcsOpts with
+        | Ok optsDPW -> Ok (fcsOpts, optsDPW, projectFiles, logMap)
+        | Error x -> Error x)
 
 let parseProject (loader, fcsBinder) projectFileName =
     projectFileName
