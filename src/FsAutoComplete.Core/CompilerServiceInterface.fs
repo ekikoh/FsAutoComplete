@@ -425,23 +425,6 @@ type ParseAndCheckResults
 
 type Version = int
 
-module FSharpCompilerServiceCheckerHelper =
-
-  let isFSharpCore (s : string) = s.EndsWith "FSharp.Core.dll"
-
-  let ensureCorrectFSharpCore (options: string[]) =
-    let fsharpCores, others = Array.partition isFSharpCore options
-
-    // ensure that there is only one fsharpcore ref provided
-    let fsharpCoreRef =
-      match fsharpCores with
-      | [||] -> sprintf "-r:%s" Environment.fsharpCore
-      | [| ref |] -> ref
-      | refs -> Array.head refs
-
-    [| yield fsharpCoreRef
-       yield! others |]
-
 type FSharpCompilerServiceChecker() =
   let checker =
     FSharpChecker.Create(

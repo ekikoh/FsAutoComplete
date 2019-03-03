@@ -38,7 +38,7 @@ module Environment =
 
   let private vsSkus = ["Community"; "Professional"; "Enterprise"; "BuildTools"]
   let private vsVersions = ["2017"]
-  let cartesian a b =
+  let private cartesian a b =
     [ for a' in a do
         for b' in b do
           yield a', b' ]
