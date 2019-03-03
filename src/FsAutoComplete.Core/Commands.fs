@@ -807,12 +807,13 @@ type Commands (serialize : Serializer) =
             | Dotnet.ProjInfo.Workspace.WorkspaceProjectState.Loading (path, _) ->
                 Some (WorkspaceProjectState.Loading path)
             | Dotnet.ProjInfo.Workspace.WorkspaceProjectState.Loaded (opts, projectFiles, logMap) ->
-                let fcsOptsOpt = fcsBinder.GetProjectOptions(opts.ProjectFileName)
-                match fcsOptsOpt with
+                match fcsBinder.GetProjectOptions(opts.ProjectFileName) with
                 | Some fcsOpts ->
-                    let extraInfo = Workspace.mapExtraOptions opts.ExtraProjectInfo
-                    //TODO bindExtraInfo
-                    Some (WorkspaceProjectState.Loaded (fcsOpts, extraInfo, projectFiles, logMap))
+                    match Workspace.bindExtraOptions (fcsOpts, projectFiles, logMap) with
+                    | Ok (fsacOpts, extraInfo, projectFiles, logMap) ->
+                        Some (WorkspaceProjectState.Loaded (fsacOpts, extraInfo, projectFiles, logMap))
+                    | _ ->
+                        None //TODO not ignore the error
                 | None ->
                     //TODO notify C# project too
                     None

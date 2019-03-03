@@ -70,7 +70,7 @@ let getProjectOptions notifyState (loader: Dotnet.ProjInfo.Workspace.Loader, fcs
             |> Result.map removeDeprecatedArgs
 #endif
 
-let mapExtraOptions (dpwExtraProjectInfo: DPW_ExtraProjectInfoData) : ExtraProjectInfoData =
+let private mapExtraOptions (dpwExtraProjectInfo: DPW_ExtraProjectInfoData) : ExtraProjectInfoData =
     let mapProjectSdkType (x: DPW_ProjectSdkType) : ProjectSdkType =
         match x with
         | DPW_ProjectSdkType.Verbose v ->
