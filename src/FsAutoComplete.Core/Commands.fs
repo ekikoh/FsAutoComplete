@@ -211,6 +211,43 @@ type Commands (serialize : Serializer) =
         let loader = Dotnet.ProjInfo.Workspace.Loader.Create(config)
         loader, checker.CreateFCSBinder(NETFrameworkInfoProvider.netFWInfo, loader)
 
+    let mapExtraOptions (opts: DPW_ProjectOptions) : ExtraProjectInfoData =
+        let mapProjectSdkType (x: DPW_ProjectSdkType) : ProjectSdkType =
+            match x with
+            | DPW_ProjectSdkType.Verbose v ->
+                ProjectSdkType.Verbose
+                    { ProjectSdkTypeVerbose.TargetPath = v.TargetPath }
+            | DPW_ProjectSdkType.DotnetSdk v ->
+                ProjectSdkType.DotnetSdk
+                    { ProjectSdkTypeDotnetSdk.IsTestProject = v.IsTestProject
+                      Configuration = v.Configuration
+                      IsPackable = v.IsPackable
+                      TargetFramework = v.TargetFramework
+                      TargetFrameworkIdentifier = v.TargetFrameworkIdentifier
+                      TargetFrameworkVersion = v.TargetFrameworkVersion
+                      MSBuildAllProjects = v.MSBuildAllProjects
+                      MSBuildToolsVersion = v.MSBuildToolsVersion
+                      ProjectAssetsFile = v.ProjectAssetsFile
+                      RestoreSuccess = v.RestoreSuccess
+                      Configurations = v.Configurations
+                      TargetFrameworks = v.TargetFrameworks
+                      TargetPath = v.TargetPath
+                      RunArguments = v.RunArguments
+                      RunCommand = v.RunCommand
+                      IsPublishable = v.IsPublishable }
+
+        let mapProjectOutputType (x: DPW_ProjectOutputType) : ProjectOutputType =
+            match x with
+            | DPW_ProjectOutputType.Library -> ProjectOutputType.Library
+            | DPW_ProjectOutputType.Exe -> ProjectOutputType.Exe
+            | DPW_ProjectOutputType.Custom o -> ProjectOutputType.Custom o
+
+        let extraInfo =
+            { ExtraProjectInfoData.ProjectOutputType = mapProjectOutputType opts.ExtraProjectInfo.ProjectOutputType
+              ProjectSdkType = mapProjectSdkType opts.ExtraProjectInfo.ProjectSdkType }
+
+        extraInfo
+
     member __.Notify = notify.Publish
 
     member __.FileChecked = fileChecked.Publish
@@ -338,45 +375,6 @@ type Commands (serialize : Serializer) =
         }
 
         (opts.ProjectFileName, cached)
-
-    member private x.ToProjectCacheFromDPW (opts: DPW_ProjectOptions, fcsOpts: FSharpProjectOptions, projectFiles, logMap) =
-        let mapProjectSdkType (x: DPW_ProjectSdkType) : ProjectSdkType =
-            match x with
-            | DPW_ProjectSdkType.Verbose v ->
-                ProjectSdkType.Verbose
-                    { ProjectSdkTypeVerbose.TargetPath = v.TargetPath }
-            | DPW_ProjectSdkType.DotnetSdk v ->
-                ProjectSdkType.DotnetSdk
-                    { ProjectSdkTypeDotnetSdk.IsTestProject = v.IsTestProject
-                      Configuration = v.Configuration
-                      IsPackable = v.IsPackable
-                      TargetFramework = v.TargetFramework
-                      TargetFrameworkIdentifier = v.TargetFrameworkIdentifier
-                      TargetFrameworkVersion = v.TargetFrameworkVersion
-                      MSBuildAllProjects = v.MSBuildAllProjects
-                      MSBuildToolsVersion = v.MSBuildToolsVersion
-                      ProjectAssetsFile = v.ProjectAssetsFile
-                      RestoreSuccess = v.RestoreSuccess
-                      Configurations = v.Configurations
-                      TargetFrameworks = v.TargetFrameworks
-                      TargetPath = v.TargetPath
-                      RunArguments = v.RunArguments
-                      RunCommand = v.RunCommand
-                      IsPublishable = v.IsPublishable }
-
-        let mapProjectOutputType (x: DPW_ProjectOutputType) : ProjectOutputType =
-            match x with
-            | DPW_ProjectOutputType.Library -> ProjectOutputType.Library
-            | DPW_ProjectOutputType.Exe -> ProjectOutputType.Exe
-            | DPW_ProjectOutputType.Custom o -> ProjectOutputType.Custom o
-
-        let extraInfo =
-            { ExtraProjectInfoData.ProjectOutputType = mapProjectOutputType opts.ExtraProjectInfo.ProjectOutputType
-              ProjectSdkType = mapProjectSdkType opts.ExtraProjectInfo.ProjectSdkType }
-
-        //TODO the fcsOpts.ExtraInfo are not ok maybe
-
-        x.ToProjectCache(fcsOpts, extraInfo, projectFiles, logMap)
 
     member x.Project projectFileName verbose onChange = async {
         let projectFileName = Path.GetFullPath projectFileName
@@ -846,24 +844,19 @@ type Commands (serialize : Serializer) =
 
         let loader, fcsBinder = workspaceBinder ()
 
-        let newOnloaded (n: Dotnet.ProjInfo.Workspace.WorkspaceProjectState) =
+        let bindNewOnloaded (n: Dotnet.ProjInfo.Workspace.WorkspaceProjectState) : WorkspaceProjectState option =
             match n with
             | Dotnet.ProjInfo.Workspace.WorkspaceProjectState.Loading (path, _) ->
-                Response.projectLoading serialize path
-                |> NotificationEvent.Workspace
-                |> notify.Trigger
+                Some (WorkspaceProjectState.Loading path)
             | Dotnet.ProjInfo.Workspace.WorkspaceProjectState.Loaded (opts, projectFiles, logMap) ->
                 let fcsOptsOpt = fcsBinder.GetProjectOptions(opts.ProjectFileName)
                 match fcsOptsOpt with
                 | Some fcsOpts ->
-                    let projectFileName, response = x.ToProjectCacheFromDPW(opts, fcsOpts, projectFiles, logMap)
-                    projectLoadedSuccessfully projectFileName response
-                    Response.project serialize (projectFileName, response.Files, response.OutFile, response.References, response.Log, response.ExtraInfo, Map.empty)
-                    |> NotificationEvent.Workspace
-                    |> notify.Trigger
+                    let extraInfo = mapExtraOptions opts
+                    Some (WorkspaceProjectState.Loaded (fcsOpts, extraInfo, projectFiles, logMap))
                 | None ->
                     //TODO notify C# project too
-                    ()
+                    None
             | Dotnet.ProjInfo.Workspace.WorkspaceProjectState.Failed (path, e) ->
                 let error =
                     match e with
@@ -871,12 +864,10 @@ type Commands (serialize : Serializer) =
                         GetProjectOptionsErrors.ProjectNotRestored s
                     | Dotnet.ProjInfo.Workspace.GetProjectOptionsErrors.GenericError (a, b) ->
                         GetProjectOptionsErrors.GenericError (a,b)
-                Response.projectError serialize error
-                |> NotificationEvent.Workspace
-                |> notify.Trigger
+                Some (WorkspaceProjectState.Failed (path, error))
 
         loader.Notifications.Add(fun (_, arg) ->
-            newOnloaded arg )
+            arg |> bindNewOnloaded |> Option.iter onLoaded )
 
         do! Workspace.loadInBackground onLoaded (loader, fcsBinder) false (projects |> List.map snd)
 
