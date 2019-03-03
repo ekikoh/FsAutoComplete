@@ -19,7 +19,10 @@ let private getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBind
 
             match fcsBinder.GetProjectOptions (projectFileName) with
             | Some po ->
-                Result.Ok (po, List.ofArray po.SourceFiles, Map.empty)
+                // same useless log to remain compatible with tests baseline
+                let logMap = [ projectFileName, "" ] |> Map.ofList
+
+                Result.Ok (po, List.ofArray po.SourceFiles, logMap)
             | None -> 
                 Error (GenericError(projectFileName, (sprintf "Project file '%s' parsing failed" projectFileName)))
         | NetCoreProjectJson ->
