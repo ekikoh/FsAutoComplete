@@ -13,11 +13,6 @@ open System.Reflection
 open FSharp.Compiler.Range
 open FSharp.Analyzers
 
-type DPW_ProjectOptions = Dotnet.ProjInfo.Workspace.ProjectOptions
-type DPW_ProjectSdkType = Dotnet.ProjInfo.Workspace.ProjectSdkType
-type DPW_ProjectOutputType = Dotnet.ProjInfo.Workspace.ProjectOutputType
-type DPW_ExtraProjectInfoData = Dotnet.ProjInfo.Workspace.ExtraProjectInfoData
-
 module Response = CommandResponse
 
 [<RequireQualifiedAccess>]
@@ -210,43 +205,6 @@ type Commands (serialize : Serializer) =
         let config = Dotnet.ProjInfo.Workspace.LoaderConfig.Default Environment.msbuildLocator
         let loader = Dotnet.ProjInfo.Workspace.Loader.Create(config)
         loader, checker.CreateFCSBinder(NETFrameworkInfoProvider.netFWInfo, loader)
-
-    let mapExtraOptions (opts: DPW_ProjectOptions) : ExtraProjectInfoData =
-        let mapProjectSdkType (x: DPW_ProjectSdkType) : ProjectSdkType =
-            match x with
-            | DPW_ProjectSdkType.Verbose v ->
-                ProjectSdkType.Verbose
-                    { ProjectSdkTypeVerbose.TargetPath = v.TargetPath }
-            | DPW_ProjectSdkType.DotnetSdk v ->
-                ProjectSdkType.DotnetSdk
-                    { ProjectSdkTypeDotnetSdk.IsTestProject = v.IsTestProject
-                      Configuration = v.Configuration
-                      IsPackable = v.IsPackable
-                      TargetFramework = v.TargetFramework
-                      TargetFrameworkIdentifier = v.TargetFrameworkIdentifier
-                      TargetFrameworkVersion = v.TargetFrameworkVersion
-                      MSBuildAllProjects = v.MSBuildAllProjects
-                      MSBuildToolsVersion = v.MSBuildToolsVersion
-                      ProjectAssetsFile = v.ProjectAssetsFile
-                      RestoreSuccess = v.RestoreSuccess
-                      Configurations = v.Configurations
-                      TargetFrameworks = v.TargetFrameworks
-                      TargetPath = v.TargetPath
-                      RunArguments = v.RunArguments
-                      RunCommand = v.RunCommand
-                      IsPublishable = v.IsPublishable }
-
-        let mapProjectOutputType (x: DPW_ProjectOutputType) : ProjectOutputType =
-            match x with
-            | DPW_ProjectOutputType.Library -> ProjectOutputType.Library
-            | DPW_ProjectOutputType.Exe -> ProjectOutputType.Exe
-            | DPW_ProjectOutputType.Custom o -> ProjectOutputType.Custom o
-
-        let extraInfo =
-            { ExtraProjectInfoData.ProjectOutputType = mapProjectOutputType opts.ExtraProjectInfo.ProjectOutputType
-              ProjectSdkType = mapProjectSdkType opts.ExtraProjectInfo.ProjectSdkType }
-
-        extraInfo
 
     member __.Notify = notify.Publish
 
@@ -852,7 +810,8 @@ type Commands (serialize : Serializer) =
                 let fcsOptsOpt = fcsBinder.GetProjectOptions(opts.ProjectFileName)
                 match fcsOptsOpt with
                 | Some fcsOpts ->
-                    let extraInfo = mapExtraOptions opts
+                    let extraInfo = Workspace.mapExtraOptions opts.ExtraProjectInfo
+                    //TODO bindExtraInfo
                     Some (WorkspaceProjectState.Loaded (fcsOpts, extraInfo, projectFiles, logMap))
                 | None ->
                     //TODO notify C# project too

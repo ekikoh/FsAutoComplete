@@ -3,6 +3,11 @@ module FsAutoComplete.Workspace
 open ProjectRecognizer
 open System.IO
 
+type DPW_ProjectOptions = Dotnet.ProjInfo.Workspace.ProjectOptions
+type DPW_ProjectSdkType = Dotnet.ProjInfo.Workspace.ProjectSdkType
+type DPW_ProjectOutputType = Dotnet.ProjInfo.Workspace.ProjectOutputType
+type DPW_ExtraProjectInfoData = Dotnet.ProjInfo.Workspace.ExtraProjectInfoData
+
 #if NO_PROJECTCRACKER
 #else
 let private deduplicateReferences (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
@@ -65,7 +70,44 @@ let getProjectOptions notifyState (loader: Dotnet.ProjInfo.Workspace.Loader, fcs
             |> Result.map removeDeprecatedArgs
 #endif
 
-let private bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
+let mapExtraOptions (dpwExtraProjectInfo: DPW_ExtraProjectInfoData) : ExtraProjectInfoData =
+    let mapProjectSdkType (x: DPW_ProjectSdkType) : ProjectSdkType =
+        match x with
+        | DPW_ProjectSdkType.Verbose v ->
+            ProjectSdkType.Verbose
+                { ProjectSdkTypeVerbose.TargetPath = v.TargetPath }
+        | DPW_ProjectSdkType.DotnetSdk v ->
+            ProjectSdkType.DotnetSdk
+                { ProjectSdkTypeDotnetSdk.IsTestProject = v.IsTestProject
+                  Configuration = v.Configuration
+                  IsPackable = v.IsPackable
+                  TargetFramework = v.TargetFramework
+                  TargetFrameworkIdentifier = v.TargetFrameworkIdentifier
+                  TargetFrameworkVersion = v.TargetFrameworkVersion
+                  MSBuildAllProjects = v.MSBuildAllProjects
+                  MSBuildToolsVersion = v.MSBuildToolsVersion
+                  ProjectAssetsFile = v.ProjectAssetsFile
+                  RestoreSuccess = v.RestoreSuccess
+                  Configurations = v.Configurations
+                  TargetFrameworks = v.TargetFrameworks
+                  TargetPath = v.TargetPath
+                  RunArguments = v.RunArguments
+                  RunCommand = v.RunCommand
+                  IsPublishable = v.IsPublishable }
+
+    let mapProjectOutputType (x: DPW_ProjectOutputType) : ProjectOutputType =
+        match x with
+        | DPW_ProjectOutputType.Library -> ProjectOutputType.Library
+        | DPW_ProjectOutputType.Exe -> ProjectOutputType.Exe
+        | DPW_ProjectOutputType.Custom o -> ProjectOutputType.Custom o
+
+    let extraInfo =
+        { ExtraProjectInfoData.ProjectOutputType = mapProjectOutputType dpwExtraProjectInfo.ProjectOutputType
+          ProjectSdkType = mapProjectSdkType dpwExtraProjectInfo.ProjectSdkType }
+
+    extraInfo
+
+let bindExtraOptions (opts: Microsoft.FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
     match opts.ExtraProjectInfo with
     | None ->
         Error (GenericError(opts.ProjectFileName, "expected ExtraProjectInfo after project parsing, was None"))
@@ -73,6 +115,10 @@ let private bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpPro
         match x with
         | :? ExtraProjectInfoData as extraInfo ->
             Ok (opts, extraInfo, projectFiles, logMap)
+        | :? DPW_ExtraProjectInfoData as extraInfoDPW ->
+            let extraInfo = mapExtraOptions extraInfoDPW
+            let fsacOpts = { opts with ExtraProjectInfo = Some (box(extraInfo)) }
+            Ok (fsacOpts, extraInfo, projectFiles, logMap)
         | x ->
             Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
 
