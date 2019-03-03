@@ -133,8 +133,7 @@ let parseProject (loader, fcsBinder) verbose projectFileName =
 
 let loadInBackground onLoaded (loader, fcsBinder) verbose (projects: Project list) = async {
 
-    projects
-    |> List.iter(fun project ->
+    for project in projects do
         match project.Response with
         | Some res ->
             onLoaded (WorkspaceProjectState.Loaded (res.Options, res.ExtraInfo, res.Files, res.Log))
@@ -142,9 +141,9 @@ let loadInBackground onLoaded (loader, fcsBinder) verbose (projects: Project lis
             project.FileName
             |> parseProject' onLoaded (loader, fcsBinder) verbose
             |> function
-            | Ok (opts, extraInfo, projectFiles, logMap) ->
-                    onLoaded (WorkspaceProjectState.Loaded (opts, extraInfo, projectFiles, logMap))
-            | Error error ->
-                    onLoaded (WorkspaceProjectState.Failed (project.FileName, error))
-    )
+               | Ok (opts, extraInfo, projectFiles, logMap) ->
+                   onLoaded (WorkspaceProjectState.Loaded (opts, extraInfo, projectFiles, logMap))
+               | Error error ->
+                   onLoaded (WorkspaceProjectState.Failed (project.FileName, error))
+
     }
