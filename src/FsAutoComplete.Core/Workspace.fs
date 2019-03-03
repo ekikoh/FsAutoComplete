@@ -55,13 +55,18 @@ let private removeDeprecatedArgs (opts: FSharp.Compiler.SourceCodeServices.FShar
     let opts = {opts with OtherOptions = oos}
     opts, projectFiles, logMap
 
-let parseProject verbose projectFileName =
-    let projsCache = new ProjectCrackerDotnetSdk.ParsedProjectCache()
+
+let private parseProject' onLoaded projsCache verbose projectFileName =
     projectFileName
-    |> getProjectOptions ignore projsCache verbose
+    |> getProjectOptions onLoaded projsCache verbose
     |> Result.map deduplicateReferences
     |> Result.map removeDeprecatedArgs
     |> Result.bind bindExtraOptions
+
+let parseProject verbose projectFileName =
+    let projsCache = new ProjectCrackerDotnetSdk.ParsedProjectCache()
+    projectFileName
+    |> parseProject' ignore projsCache verbose
 
 let loadInBackground onLoaded verbose (projects: Project list) = async {
     let projsCache = new ProjectCrackerDotnetSdk.ParsedProjectCache()
@@ -73,10 +78,7 @@ let loadInBackground onLoaded verbose (projects: Project list) = async {
             onLoaded (WorkspaceProjectState.Loaded (res.Options, res.ExtraInfo, res.Files, res.Log))
         | None ->
             project.FileName
-            |> getProjectOptions onLoaded projsCache verbose
-            |> Result.map deduplicateReferences
-            |> Result.map removeDeprecatedArgs
-            |> Result.bind bindExtraOptions
+            |> parseProject' onLoaded projsCache verbose
             |> function
             | Ok (opts, extraInfo, projectFiles, logMap) ->
                     onLoaded (WorkspaceProjectState.Loaded (opts, extraInfo, projectFiles, logMap))
