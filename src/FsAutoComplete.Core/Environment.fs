@@ -9,6 +9,19 @@ open System.Runtime.InteropServices
 open Dotnet.ProjInfo.Workspace
 
 module Environment =
+
+  let msbuild =
+    let msbuildLocator = MSBuildLocator()
+    let msbuildPath = msbuildLocator.LatestInstalledMSBuild()
+
+    match msbuildPath with
+    | Dotnet.ProjInfo.Inspect.MSBuildExePath.Path path ->
+      Some path
+    | Dotnet.ProjInfo.Inspect.MSBuildExePath.DotnetMsbuild p ->
+      // failwithf "expected msbuild, not 'dotnet %s'" p
+      None
+
+
   let private environVar v = Environment.GetEnvironmentVariable v
 
   let private programFilesX86 =
@@ -33,17 +46,6 @@ module Environment =
   let private vsRoots =
     cartesian vsVersions vsSkus 
     |> List.map (fun (version, sku) -> programFilesX86 </> "Microsoft Visual Studio" </> version </> sku) 
-
-  let msbuild =
-    let msbuildLocator = MSBuildLocator()
-    let msbuildPath = msbuildLocator.LatestInstalledMSBuild()
-
-    match msbuildPath with
-    | Dotnet.ProjInfo.Inspect.MSBuildExePath.Path path ->
-      Some path
-    | Dotnet.ProjInfo.Inspect.MSBuildExePath.DotnetMsbuild p ->
-      // failwithf "expected msbuild, not 'dotnet %s'" p
-      None
 
   /// these are the single-instance installation paths on windows from FSharp versions < 4.5
   let private legacyFSharpInstallationPaths =
