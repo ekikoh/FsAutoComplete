@@ -8,7 +8,7 @@ type DPW_ProjectSdkType = Dotnet.ProjInfo.Workspace.ProjectSdkType
 type DPW_ProjectOutputType = Dotnet.ProjInfo.Workspace.ProjectOutputType
 type DPW_ExtraProjectInfoData = Dotnet.ProjInfo.Workspace.ExtraProjectInfoData
 
-let getProjectOptions notifyState (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBinder: Dotnet.ProjInfo.Workspace.FCS.FCSBinder) verbose (projectFileName: SourceFilePath) =
+let getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBinder: Dotnet.ProjInfo.Workspace.FCS.FCSBinder) verbose (projectFileName: SourceFilePath) =
     if not (File.Exists projectFileName) then
         Error (GenericError(projectFileName, sprintf "File '%s' does not exist" projectFileName))
     else
@@ -89,14 +89,14 @@ let bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOpti
         | x ->
             Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
 
-let private parseProject' onLoaded (loader, fcsBinder) verbose projectFileName =
+let private parseProject' (loader, fcsBinder) verbose projectFileName =
     projectFileName
-    |> getProjectOptions onLoaded (loader, fcsBinder) verbose
+    |> getProjectOptions (loader, fcsBinder) verbose
     |> Result.bind bindExtraOptions
 
 let parseProject (loader, fcsBinder) verbose projectFileName =
     projectFileName
-    |> parseProject' ignore (loader, fcsBinder) verbose
+    |> parseProject' (loader, fcsBinder) verbose
 
 let loadInBackground onLoaded (loader, fcsBinder) verbose (projects: Project list) = async {
 
@@ -106,7 +106,7 @@ let loadInBackground onLoaded (loader, fcsBinder) verbose (projects: Project lis
             onLoaded (WorkspaceProjectState.Loaded (res.Options, res.ExtraInfo, res.Files, res.Log))
         | None ->
             project.FileName
-            |> parseProject' onLoaded (loader, fcsBinder) verbose
+            |> parseProject' (loader, fcsBinder) verbose
             |> function
                | Ok (opts, extraInfo, projectFiles, logMap) ->
                    onLoaded (WorkspaceProjectState.Loaded (opts, extraInfo, projectFiles, logMap))
