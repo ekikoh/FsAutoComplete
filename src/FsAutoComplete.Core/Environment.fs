@@ -21,7 +21,6 @@ module Environment =
       // failwithf "expected msbuild, not 'dotnet %s'" p
       None
 
-
   let private environVar v = Environment.GetEnvironmentVariable v
 
   let private programFilesX86 =
