@@ -12,20 +12,16 @@ let private getProjectOptions (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBind
     if not (File.Exists projectFileName) then
         Error (GenericError(projectFileName, sprintf "File '%s' does not exist" projectFileName))
     else
+        match projectFileName with
+        | Net45
+        | NetCoreSdk ->
+            loader.LoadProjects [projectFileName]
 
-        let loadProj projectPath =
-            loader.LoadProjects [projectPath]
-
-            match fcsBinder.GetProjectOptions (projectPath) with
+            match fcsBinder.GetProjectOptions (projectFileName) with
             | Some po ->
                 Result.Ok (po, List.ofArray po.SourceFiles, Map.empty)
             | None -> 
                 Error (GenericError(projectFileName, (sprintf "Project file '%s' parsing failed" projectFileName)))
-
-        match projectFileName with
-        | Net45
-        | NetCoreSdk ->
-            loadProj projectFileName
         | NetCoreProjectJson ->
             Error (GenericError(projectFileName, (sprintf "Project file '%s' format project.json not supported" projectFileName)))
         | FSharpNetSdk ->
