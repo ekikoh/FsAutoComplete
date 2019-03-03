@@ -3,22 +3,6 @@ module FsAutoComplete.Workspace
 open ProjectRecognizer
 open System.IO
 
-let getProjectOptions notifyState (cache: ProjectCrackerDotnetSdk.ParsedProjectCache) verbose (projectFileName: SourceFilePath) =
-    if not (File.Exists projectFileName) then
-        Error (GenericError(projectFileName, sprintf "File '%s' does not exist" projectFileName))
-    else
-        match projectFileName with
-        | NetCoreProjectJson -> ProjectCrackerProjectJson.load projectFileName
-        | NetCoreSdk -> ProjectCrackerDotnetSdk.load notifyState cache projectFileName
-        | FSharpNetSdk -> Error (GenericError(projectFileName, (sprintf "Project file '%s' using FSharp.NET.Sdk not supported" projectFileName)))
-#if NO_PROJECTCRACKER
-        | Net45 -> ProjectCrackerDotnetSdk.loadVerboseSdk notifyState cache projectFileName
-        | Unsupported -> Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
-#else
-        | Net45 -> ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
-        | Unsupported -> ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
-#endif
-
 let private bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpProjectOptions, projectFiles, logMap) =
     match opts.ExtraProjectInfo with
     | None ->
@@ -55,6 +39,22 @@ let private removeDeprecatedArgs (opts: FSharp.Compiler.SourceCodeServices.FShar
     let opts = {opts with OtherOptions = oos}
     opts, projectFiles, logMap
 
+
+let getProjectOptions notifyState (cache: ProjectCrackerDotnetSdk.ParsedProjectCache) verbose (projectFileName: SourceFilePath) =
+    if not (File.Exists projectFileName) then
+        Error (GenericError(projectFileName, sprintf "File '%s' does not exist" projectFileName))
+    else
+        match projectFileName with
+        | NetCoreProjectJson -> ProjectCrackerProjectJson.load projectFileName
+        | NetCoreSdk -> ProjectCrackerDotnetSdk.load notifyState cache projectFileName
+        | FSharpNetSdk -> Error (GenericError(projectFileName, (sprintf "Project file '%s' using FSharp.NET.Sdk not supported" projectFileName)))
+#if NO_PROJECTCRACKER
+        | Net45 -> ProjectCrackerDotnetSdk.loadVerboseSdk notifyState cache projectFileName
+        | Unsupported -> Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
+#else
+        | Net45 -> ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
+        | Unsupported -> ProjectCrackerVerbose.load notifyState FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore projectFileName verbose
+#endif
 
 let private parseProject' onLoaded projsCache verbose projectFileName =
     projectFileName
