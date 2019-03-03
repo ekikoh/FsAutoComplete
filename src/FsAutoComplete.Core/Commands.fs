@@ -201,6 +201,11 @@ type Commands (serialize : Serializer) =
         |> Seq.map (fun (m) -> m.Key,m.Value)
         |> Seq.tryPick (fun (x,y) -> if x = "githash" && not (String.IsNullOrWhiteSpace(y)) then Some y else None )
 
+    let workspaceBinder () =
+        let config = Dotnet.ProjInfo.Workspace.LoaderConfig.Default Environment.msbuildLocator
+        let loader = Dotnet.ProjInfo.Workspace.Loader.Create(config)
+        loader, checker.CreateFCSBinder(NETFrameworkInfoProvider.netFWInfo, loader)
+
     member __.Notify = notify.Publish
 
     member __.FileChecked = fileChecked.Publish
@@ -340,12 +345,15 @@ type Commands (serialize : Serializer) =
                 state.Projects.[projectFileName] <- proj
                 proj
         //printfn "project:\n%A" project
+
+        let workspaceBinder = workspaceBinder ()
+
         let projResponse =
             match project.Response with
             | Some response ->
                 Result.Ok (projectFileName, response)
             | None ->
-                match projectFileName |> Workspace.parseProject verbose |> Result.map (x.ToProjectCache) with
+                match projectFileName |> Workspace.parseProject workspaceBinder verbose |> Result.map (x.ToProjectCache) with
                 | Result.Ok (projectFileName, response) ->
                     project.Response <- Some response
                     Result.Ok (projectFileName, response)
@@ -792,7 +800,9 @@ type Commands (serialize : Serializer) =
             do! Async.Sleep(Environment.workspaceLoadDelay().TotalMilliseconds |> int)
         | _ -> ()
 
-        do! Workspace.loadInBackground onLoaded false (projects |> List.map snd)
+        let workspaceBinder = workspaceBinder ()
+
+        do! Workspace.loadInBackground onLoaded workspaceBinder false (projects |> List.map snd)
 
         Response.workspaceLoad serialize true
         |> NotificationEvent.Workspace

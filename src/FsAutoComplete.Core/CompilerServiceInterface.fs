@@ -494,6 +494,9 @@ type FSharpCompilerServiceChecker() =
   let fsxBinder = Dotnet.ProjInfo.Workspace.FCS.FsxBinder(NETFrameworkInfoProvider.netFWInfo, checker)
 #endif
 
+  member __.CreateFCSBinder(netFwInfo: Dotnet.ProjInfo.Workspace.NetFWInfo, loader: Dotnet.ProjInfo.Workspace.Loader) =
+    Dotnet.ProjInfo.Workspace.FCS.FCSBinder(netFwInfo, loader, checker)
+
   member __.DisableInMemoryProjectReferences
     with get() = disableInMemoryProjectReferences
     and set(value) = disableInMemoryProjectReferences <- value

@@ -31,17 +31,33 @@ let private removeDeprecatedArgs (opts: FSharp.Compiler.SourceCodeServices.FShar
     opts, projectFiles, logMap
 #endif
 
-let getProjectOptions notifyState (cache: ProjectCrackerDotnetSdk.ParsedProjectCache) verbose (projectFileName: SourceFilePath) =
+let getProjectOptions notifyState (loader: Dotnet.ProjInfo.Workspace.Loader, fcsBinder: Dotnet.ProjInfo.Workspace.FCS.FCSBinder) verbose (projectFileName: SourceFilePath) =
     if not (File.Exists projectFileName) then
         Error (GenericError(projectFileName, sprintf "File '%s' does not exist" projectFileName))
     else
+
+        let loadProj projectPath =
+            // TODO notifyState
+            loader.LoadProjects [projectPath]
+
+            match fcsBinder.GetProjectOptions (projectPath) with
+            | Some po ->
+                Result.Ok (po, List.ofArray po.SourceFiles, Map.empty)
+            | None -> 
+                Error (GenericError(projectFileName, (sprintf "Project file '%s' parsing failed" projectFileName)))
+
         match projectFileName with
-        | NetCoreProjectJson -> ProjectCrackerProjectJson.load projectFileName
-        | NetCoreSdk -> ProjectCrackerDotnetSdk.load notifyState cache projectFileName
-        | FSharpNetSdk -> Error (GenericError(projectFileName, (sprintf "Project file '%s' using FSharp.NET.Sdk not supported" projectFileName)))
+        | NetCoreProjectJson ->
+            ProjectCrackerProjectJson.load projectFileName
+        | NetCoreSdk ->
+            loadProj projectFileName
+        | FSharpNetSdk ->
+            Error (GenericError(projectFileName, (sprintf "Project file '%s' using FSharp.NET.Sdk not supported" projectFileName)))
 #if NO_PROJECTCRACKER
-        | Net45 -> ProjectCrackerDotnetSdk.loadVerboseSdk notifyState cache projectFileName
-        | Unsupported -> Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
+        | Net45 ->
+            loadProj projectFileName
+        | Unsupported ->
+            Error (GenericError(projectFileName, (sprintf "Project file '%s' not supported" projectFileName)))
 #else
         | Net45
         | Unsupported ->
@@ -61,18 +77,16 @@ let private bindExtraOptions (opts: FSharp.Compiler.SourceCodeServices.FSharpPro
         | x ->
             Error (GenericError(opts.ProjectFileName, (sprintf "expected ExtraProjectInfo after project parsing, was %A" x)))
 
-let private parseProject' onLoaded projsCache verbose projectFileName =
+let private parseProject' onLoaded (loader, fcsBinder) verbose projectFileName =
     projectFileName
-    |> getProjectOptions onLoaded projsCache verbose
+    |> getProjectOptions onLoaded (loader, fcsBinder) verbose
     |> Result.bind bindExtraOptions
 
-let parseProject verbose projectFileName =
-    let projsCache = new ProjectCrackerDotnetSdk.ParsedProjectCache()
+let parseProject (loader, fcsBinder) verbose projectFileName =
     projectFileName
-    |> parseProject' ignore projsCache verbose
+    |> parseProject' ignore (loader, fcsBinder) verbose
 
-let loadInBackground onLoaded verbose (projects: Project list) = async {
-    let projsCache = new ProjectCrackerDotnetSdk.ParsedProjectCache()
+let loadInBackground onLoaded (loader, fcsBinder) verbose (projects: Project list) = async {
 
     projects
     |> List.iter(fun project ->
@@ -81,7 +95,7 @@ let loadInBackground onLoaded verbose (projects: Project list) = async {
             onLoaded (WorkspaceProjectState.Loaded (res.Options, res.ExtraInfo, res.Files, res.Log))
         | None ->
             project.FileName
-            |> parseProject' onLoaded projsCache verbose
+            |> parseProject' onLoaded (loader, fcsBinder) verbose
             |> function
             | Ok (opts, extraInfo, projectFiles, logMap) ->
                     onLoaded (WorkspaceProjectState.Loaded (opts, extraInfo, projectFiles, logMap))
