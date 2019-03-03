@@ -78,23 +78,6 @@ module Environment =
     let dir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)
     dir </> "FSharp.Core.dll"
 
-#if SCRIPT_REFS_FROM_MSBUILD
-#else
-  let referenceAssembliesPath () =
-    Some (programFilesX86 </> @"Reference Assemblies\Microsoft\Framework\.NETFramework")
-
-  let dotNetVersions () =
-    match referenceAssembliesPath () |> Option.filter Directory.Exists with
-    | Some path ->
-      Directory.EnumerateDirectories path
-      |> Seq.filter (fun s -> not(s.EndsWith(".X"))) //may contain only xml files, not assemblies
-      |> Seq.sort
-      |> Seq.toArray
-      |> Array.rev
-    | None ->
-      Array.empty
-#endif
-
   let workspaceLoadDelay () =
     match System.Environment.GetEnvironmentVariable("FSAC_WORKSPACELOAD_DELAY") with
     | delayMs when not (String.IsNullOrWhiteSpace(delayMs)) ->

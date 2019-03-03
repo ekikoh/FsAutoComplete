@@ -8,7 +8,6 @@ github Microsoft/visualfsharp:Visual-Studio-2017-Version-15.4 src/fsharp/FSharp.
 
 nuget Argu ~> 5.2.0
 nuget FSharp.Compiler.Service ~> 27.0
-nuget FSharp.Compiler.Service.ProjectCracker ~> 27.0 framework:net461, condition:net461
 nuget Dotnet.ProjInfo ~> 0.32.0
 nuget Dotnet.ProjInfo.Workspace.FCS ~> 0.32.0
 nuget ICSharpCode.Decompiler 3.2.0.3856

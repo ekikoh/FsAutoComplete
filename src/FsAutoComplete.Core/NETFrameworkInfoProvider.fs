@@ -17,16 +17,3 @@ module NETFrameworkInfoProvider =
   let latestInstalledNETVersion () =
     netFWInfo.LatestVersion()
 
-#if SCRIPT_REFS_FROM_MSBUILD
-#else
-  let netReferecesAssembliesTFM () =
-    Environment.dotNetVersions ()
-    |> Array.map Path.GetFileName
-
-  let netReferecesAssembliesTFMLatest () =
-    netReferecesAssembliesTFM ()
-    |> Array.sortWith (fun x y -> StringComparer.OrdinalIgnoreCase.Compare(x, y))
-    |> Array.rev
-    |> Array.tryHead
-#endif
-

@@ -442,28 +442,6 @@ module FSharpCompilerServiceCheckerHelper =
     [| yield fsharpCoreRef
        yield! others |]
 
-#if SCRIPT_REFS_FROM_MSBUILD
-#else
-  let ensureCorrectVersions (options: string[]) =
-    if Utils.runningOnMono then options
-    else
-      match Environment.referenceAssembliesPath (), NETFrameworkInfoProvider.netReferecesAssembliesTFMLatest () with
-      | _, None -> options
-      | Some referenceAssembliesPath, Some version ->
-        let oldRef = referenceAssembliesPath </> "v4.0"
-        let newRef = referenceAssembliesPath </> version
-
-        let fsharpCoreRef = options |> Seq.find isFSharpCore
-
-        let newOptions =
-          options
-          |> Seq.filter (not << isFSharpCore)
-          |> Seq.map (fun (s : string) -> s.Replace(oldRef, newRef) )
-        [| yield fsharpCoreRef
-           yield! newOptions |]
-      | None, _ -> options
-#endif
-
 type FSharpCompilerServiceChecker() =
   let checker =
     FSharpChecker.Create(
@@ -490,9 +468,7 @@ type FSharpCompilerServiceChecker() =
   let clearProjectReferecnes (opts: FSharpProjectOptions) =
     if disableInMemoryProjectReferences then {opts with ReferencedProjects = [||]} else opts
 
-#if SCRIPT_REFS_FROM_MSBUILD
   let fsxBinder = Dotnet.ProjInfo.Workspace.FCS.FsxBinder(NETFrameworkInfoProvider.netFWInfo, checker)
-#endif
 
   member __.CreateFCSBinder(netFwInfo: Dotnet.ProjInfo.Workspace.NetFWInfo, loader: Dotnet.ProjInfo.Workspace.Loader) =
     Dotnet.ProjInfo.Workspace.FCS.FCSBinder(netFwInfo, loader, checker)
@@ -513,22 +489,11 @@ type FSharpCompilerServiceChecker() =
 
   member __.GetProjectOptionsFromScript(file, source) = async {
 
-#if SCRIPT_REFS_FROM_MSBUILD
     let targetFramework = NETFrameworkInfoProvider.latestInstalledNETVersion ()
 
     let! projOptions = fsxBinder.GetProjectOptionsFromScriptBy(targetFramework, file, source)
 
     return projOptions
-#else
-    let! (rawOptions, _) = checker.GetProjectOptionsFromScript(file, source)
-
-    let opts =
-      rawOptions.OtherOptions
-      |> FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore
-      |> FSharpCompilerServiceCheckerHelper.ensureCorrectVersions
-
-    return { rawOptions with OtherOptions = opts }
-#endif
 
   }
 
