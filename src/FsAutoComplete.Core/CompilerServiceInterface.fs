@@ -490,6 +490,10 @@ type FSharpCompilerServiceChecker() =
   let clearProjectReferecnes (opts: FSharpProjectOptions) =
     if disableInMemoryProjectReferences then {opts with ReferencedProjects = [||]} else opts
 
+#if SCRIPT_REFS_FROM_MSBUILD
+  let fsxBinder = Dotnet.ProjInfo.Workspace.FCS.FsxBinder(NETFrameworkInfoProvider.netFWInfo, checker)
+#endif
+
   member __.DisableInMemoryProjectReferences
     with get() = disableInMemoryProjectReferences
     and set(value) = disableInMemoryProjectReferences <- value
@@ -507,24 +511,11 @@ type FSharpCompilerServiceChecker() =
   member __.GetProjectOptionsFromScript(file, source) = async {
 
 #if SCRIPT_REFS_FROM_MSBUILD
+    let targetFramework = NETFrameworkInfoProvider.latestInstalledNETVersion ()
 
-    let targetFramework = NETFrameworkInfoProvider.netReferecesAssembliesTFMLatest ()
+    let! projOptions = fsxBinder.GetProjectOptionsFromScriptBy(targetFramework, file, source)
 
-    let additionaRefs =
-      NETFrameworkInfoProvider.additionalArgumentsBy targetFramework
-      |> Array.ofList
-
-    let! (rawOptions, _) = checker.GetProjectOptionsFromScript(file, source, otherFlags = additionaRefs, assumeDotNetFramework = true)
-
-    let opts =
-      rawOptions.OtherOptions
-      |> FSharpCompilerServiceCheckerHelper.ensureCorrectFSharpCore
-
-    let opts =
-      opts
-      |> Array.distinct
-
-    return { rawOptions with OtherOptions = opts }
+    return projOptions
 #else
     let! (rawOptions, _) = checker.GetProjectOptionsFromScript(file, source)
 

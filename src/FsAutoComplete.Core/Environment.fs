@@ -10,8 +10,9 @@ open Dotnet.ProjInfo.Workspace
 
 module Environment =
 
+  let msbuildLocator = MSBuildLocator()
+
   let msbuild =
-    let msbuildLocator = MSBuildLocator()
     let msbuildPath = msbuildLocator.LatestInstalledMSBuild()
 
     match msbuildPath with
@@ -62,13 +63,13 @@ module Environment =
 
   let fsi =
     // on netcore on non-windows we just deflect to fsharpi as usual
-    if Utils.runningOnMono || not Utils.isWindows then Some "fsharpi"
+    if Utils.runningOnMono || not FsAutoComplete.Utils.isWindows then Some "fsharpi"
     else
       // if running on windows, non-mono we can't yet send paths to the netcore version of fsi.exe so use the one from full-framework
       fsharpInstallationPath |> Option.map (fun root -> root </> "fsi.exe")
 
   let fsc =
-    if Utils.runningOnMono || not Utils.isWindows then Some "fsharpc"
+    if Utils.runningOnMono || not FsAutoComplete.Utils.isWindows then Some "fsharpc"
     else
       // if running on windows, non-mono we can't yet send paths to the netcore version of fsc.exe so use the one from full-framework
       fsharpInstallationPath |> Option.map (fun root -> root </> "fsc.exe")
