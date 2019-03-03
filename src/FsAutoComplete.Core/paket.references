@@ -3,6 +3,7 @@ FSharp.Compiler.Service.ProjectCracker condition:net461
 FSharpLint.Core
 Sln
 Dotnet.ProjInfo
+Dotnet.ProjInfo.Workspace.FCS
 Newtonsoft.Json
 OptimizedPriorityQueue
 ICSharpCode.Decompiler
