@@ -312,12 +312,7 @@ type Commands (serialize : Serializer) =
     }
 
     member private __.ToProjectCache (opts, extraInfo: Dotnet.ProjInfo.Workspace.ExtraProjectInfoData, projectFiles, logMap) =
-        let outFileOpt =
-            match extraInfo.ProjectSdkType with
-            | Dotnet.ProjInfo.Workspace.ProjectSdkType.Verbose v ->
-                Some (v.TargetPath)
-            | Dotnet.ProjInfo.Workspace.ProjectSdkType.DotnetSdk v ->
-                Some (v.TargetPath)
+        let outFileOpt = Some (extraInfo.TargetPath)
         let references = FscArguments.references (opts.OtherOptions |> List.ofArray)
         let projectFiles = projectFiles |> List.map (Path.GetFullPath >> Utils.normalizePath)
 
